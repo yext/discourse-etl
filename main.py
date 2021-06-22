@@ -1,8 +1,11 @@
 import os
 import requests
 import json
+import time
+import argparse
 from urllib.parse import urljoin
 from yext import YextClient
+from yext.exceptions import YextException
 from dotenv import load_dotenv
 from rich.console import Console
 from rich.progress import track
@@ -11,7 +14,7 @@ from mapping import transform_profile, topic_mappings
 
 load_dotenv()
 
-MAX_PAGES = 1
+MAX_PAGES = 1000
 YEXT_API_KEY = os.getenv('YEXT_API_KEY')
 DISCOURSE_API_KEY = os.getenv('DISCOURSE_API_KEY')
 DISCOURSE_BASE_URL = 'https://hitchhikers.yext.com/community/'
@@ -20,8 +23,6 @@ DISCOURSE_TOPIC_URL = 'https://hitchhikers.yext.com/community/t/{id}.json'
 
 console = Console()
 yext_client = YextClient(YEXT_API_KEY)
-console.log(YEXT_API_KEY)
-
 
 def get_all_topics(discourse_url: str, discourse_api_key: str) -> List:
     '''
@@ -55,13 +56,15 @@ def get_topic_data(topic_id: int) -> Dict:
     return response.json()
 
 
-def main():
+def main(args):
+    timeout = args.timeout
     all_topics = get_all_topics(DISCOURSE_URL, DISCOURSE_API_KEY)
     all_topic_data = []
     for topic in track(all_topics, description='Fetching topic data...'):
         topic_id = topic['id']
         topic_data = get_topic_data(topic_id)
         all_topic_data.append(topic_data)
+        time.sleep(timeout)
     transformed_topics = []
     for topic in track(all_topic_data, description='Uploading topic data...'):
         topic_id = str(topic['id'])
@@ -73,13 +76,22 @@ def main():
             }
         }
         transformed_topic = transform_profile(topic, topic_mappings, base_profile)
-        yext_client.upsert_entity(
-            id=topic_id, #TODO - Update SDK so it doesn't require redundancy. 
-            profile=transformed_topic, 
-            entity_type='helpArticle',
-            format='html',
-            strip_unsupported_formats=True
-        )
+        try:
+            yext_client.upsert_entity(
+                id=topic_id, #TODO - Update SDK so it doesn't require redundancy. 
+                profile=transformed_topic, 
+                entity_type='helpArticle',
+                format='html',
+                strip_unsupported_formats=True
+            )
+        except YextException as e:
+            #TODO Add better, configurable error handling.
+            console.log(e)
+            console.log(transformed_topic)
+        time.sleep(timeout)
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--timeout', type=float, default=0.25)
+    args = parser.parse_args()
+    main(args)
