@@ -1,5 +1,19 @@
+import re
 import json
+from urllib.parse import urljoin
 from jsonpath_ng import jsonpath, parse
+
+def fix_relative_urls(text: str, base_url: str):
+    '''
+    Makes relative URLs into absolute ones because KG doesn't accept relative.
+    '''
+    relative_pattern = r'href="(\/[\w/]+)"'     
+    cleaned_str = re.sub(
+        relative_pattern, 
+        lambda relative: f'href="{urljoin(base_url, relative.group(1))}"',
+        text
+    )
+    return cleaned_str
 
 
 def transform_profile(raw_profile, mappings, base_profile=None):
@@ -15,8 +29,6 @@ def transform_profile(raw_profile, mappings, base_profile=None):
             raw_field = [match.value for match in jsonpath_expr.find(raw_profile)]
             if not raw_field:
                 if not optional:
-                    console.log(raw_profile)
-                    # console.log(raw_field)
                     raise ValueError(f'Could not find matches for this path: {field}')
                 else:
                     continue
@@ -29,7 +41,8 @@ def transform_profile(raw_profile, mappings, base_profile=None):
 
 post_mapping = {
     'cooked': {
-        'kgField': 'text'
+        'kgField': 'text',
+        'transform': lambda x: fix_relative_urls(x, 'https://hitchhikers.yext.com/')
     },
     'name': {
         'kgField': 'authorName'
