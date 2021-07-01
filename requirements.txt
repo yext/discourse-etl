@@ -1,7 +1,7 @@
 Gunicorn
 requests==2.22.0
 jsonpath_ng==1.5.1
-yext==0.3.0
+yext==0.3.3
 Flask==1.1.1
 python-dotenv==0.18.0
 rich==10.4.0
