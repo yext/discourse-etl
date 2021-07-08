@@ -72,7 +72,7 @@ def main(args):
             'meta': {
                 'id': topic_id,
                 'countryCode': 'US',
-                'labels': ["134088"]
+                'labels': ["135779"]
             }
         }
         transformed_topic = transform_profile(topic, topic_mappings, base_profile)
@@ -80,7 +80,7 @@ def main(args):
             yext_client.upsert_entity(
                 id=topic_id, #TODO - Update SDK so it doesn't require redundancy. 
                 profile=transformed_topic, 
-                entity_type='helpArticle',
+                entity_type='ce_discoursePost',
                 format='html',
                 strip_unsupported_formats=True
             )

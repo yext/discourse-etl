@@ -1,4 +1,5 @@
 import os
+import traceback
 from dotenv import load_dotenv
 from rich.console import Console
 from flask import Flask, request
@@ -36,7 +37,7 @@ def discourse():
         'meta': {
             'id': str(topic_id),
             'countryCode': 'US',
-            'labels': ["134088"]
+            'labels': ["135779"]
         }
     }
     transformed_topic = transform_profile(topic, topic_mappings, base_profile)
@@ -44,7 +45,7 @@ def discourse():
         yext_response = yext_client.upsert_entity(
             id=topic_id,
             profile=transformed_topic, 
-            entity_type='helpArticle',
+            entity_type='ce_discoursePost',
             format='html',
             strip_unsupported_formats=True
         )
@@ -53,7 +54,7 @@ def discourse():
         return response, 200
     except YextException as e:
         response['status'] = 'Failure'
-        response['traceback'] = str(e.__traceback__)
+        response['traceback'] = traceback.print_exc()
         return response, 400
     return {'status': 'Unknown Failure'}, 400
 
