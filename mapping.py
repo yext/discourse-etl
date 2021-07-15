@@ -16,6 +16,16 @@ def fix_relative_urls(text: str, base_url: str):
     return cleaned_str
 
 
+def fix_avatar_template(avatar_url, base_url):
+    '''
+    Interpolates a size of 20 to the avatar template and fixes relative URLs.
+    '''
+    avatar_url = avatar_url.format(size='20')
+    if not avatar_url.startswith('https'):
+        avatar_url = urljoin(base_url, avatar_url)
+    return avatar_url
+
+
 def transform_profile(raw_profile, mappings, base_profile=None):
     '''Transform a raw JSON profile into Knowledge Graph JSON via mappings.'''
     transformed_profile = base_profile if base_profile else {}
@@ -59,6 +69,23 @@ post_mapping = {
     }
 }
 
+poster_mapping = {
+    'id': {
+        'kgField': 'iD',
+        'transform': lambda x: str(x)
+    },
+    'name': {
+        'kgField': 'name',
+    },
+    'avatar_template': {
+        'kgField': 'avatarTemplate',
+        'transform': lambda template: {
+            'url': fix_avatar_template(template, 'https://hitchhikers.yext.com/'),
+            'alternateText': 'Null'
+        }
+    }
+}
+
 topic_mappings = {
     'post_stream.posts': {
         'kgField': 'c_discoursePosts',
@@ -76,5 +103,38 @@ topic_mappings = {
     },
     'slug': {
         'kgField': 'c_discourseSlug'
+    },
+    'details.participants': {
+        'kgField': 'c_posters',
+        'transform': lambda posters: [transform_profile(poster, poster_mapping) for poster in posters] 
+    },
+    'created_at': {
+        'kgField': 'c_createdAt',
+        'transform': lambda date: date[:10]
+    },
+    'last_posted_at': {
+        'kgField': 'c_lastPostedDate',
+        'transform': lambda date: date[:10]
+    },
+    'views': {
+        'kgField': 'c_postViews',
+        'transform': str
+    },
+    'like_count': {
+        'kgField': 'c_postLikes',
+        'transform': str
+    },
+    'reply_count': {
+        'kgField': 'c_replyCount',
+        'transform': str
+    },
+    'has_deleted': {
+        'kgField': 'c_postDeleted',
+        'transform': lambda deleted: 'Yes' if deleted else 'No',
+        'optional': True
+    },
+    'category_id': {
+        'kgField': 'c_postCategory',
+        'transform': str
     }
 }
